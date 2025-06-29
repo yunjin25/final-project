@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Button, FlatList, StyleSheet } from 'react-native';
+import { View, FlatList, StyleSheet, Button } from 'react-native';
 import { getMedications, saveMedications } from '../utils/storage';
 import MedicationItem from '../components/MedicationItem';
 
@@ -11,45 +11,58 @@ export default function MedicationListScreen({ navigation }) {
       const data = await getMedications();
       setMedications(data);
     };
-
     const unsubscribe = navigation.addListener('focus', loadMedications);
     return unsubscribe;
   }, [navigation]);
 
-  const toggleCheckbox = async (index) => {
-    const today = new Date().toISOString().split('T')[0]; 
+  const incrementTodayCount = async (index) => {
     const updated = [...medications];
     const med = updated[index];
+    const today = new Date().toISOString().split('T')[0];
 
-    if (!med.history) {
-      med.history = {};
+    if (!med.history) med.history = {};
+
+    if (med.todayCount < med.dailyGoal) {
+      med.todayCount += 1;
+      med.history[today] = med.todayCount;
+      await saveMedications(updated);
+      setMedications(updated);
     }
-
-    med.history[today] = !med.history[today];
-    await saveMedications(updated);
-    setMedications(updated);
   };
 
   const deleteMedication = async (index) => {
     const updated = [...medications];
-    updated.splice(index, 1); 
+    updated.splice(index, 1);
     await saveMedications(updated);
     setMedications(updated);
   };
 
   return (
     <View style={styles.container}>
-      <Button title="Add Medication" onPress={() => navigation.navigate('Add Medication')} />
       <FlatList
+        ListHeaderComponent={
+          <>
+            <Button
+              title="Add Medication"
+              onPress={() => navigation.navigate('Add Medication')}
+            />
+            <Button
+              title="View History"
+              onPress={() => navigation.navigate('History')}
+            />
+          </>
+        }
         data={medications}
         keyExtractor={(item, index) => index.toString()}
         renderItem={({ item, index }) => (
           <MedicationItem
             name={item.name}
             time={item.time}
-            checked={item.history?.[new Date().toISOString().split('T')[0]] || false}
-            onToggle={() => toggleCheckbox(index)}
+            checked={item.todayCount >= item.dailyGoal}
+            onToggle={() => incrementTodayCount(index)}
             onDelete={() => deleteMedication(index)}
+            todayCount={item.todayCount}
+            dailyGoal={item.dailyGoal}
           />
         )}
       />

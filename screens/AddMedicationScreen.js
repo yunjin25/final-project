@@ -8,10 +8,17 @@ export default function AddMedicationScreen({ navigation }) {
   const [name, setName] = useState('');
   const [time, setTime] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
+  const [dailyGoal, setDailyGoal] = useState('');
 
   const handleSave = async () => {
-    if (name.trim()) {
-      await saveMedication({ name, time: time.toISOString() });
+    if (name.trim() && dailyGoal.trim()) {
+      await saveMedication({
+        name,
+        time: time.toISOString(),
+        dailyGoal: parseInt(dailyGoal),
+        todayCount: 0,
+        history: {}
+      });
       await scheduleNotification(name, time);
       navigation.goBack();
     }
@@ -34,7 +41,7 @@ export default function AddMedicationScreen({ navigation }) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: '💊 Medication Reminder',
-        body: `It\'s time to take ${name}`,
+        body: `It's time to take ${name}`,
       },
       trigger: {
         hour: triggerTime.getHours(),
@@ -47,7 +54,7 @@ export default function AddMedicationScreen({ navigation }) {
   return (
     <View style={{ flex: 1, padding: 20 }}>
       <TextInput
-        placeholder="Enter medication name"
+        placeholder="Medication name"
         value={name}
         onChangeText={setName}
         style={{ borderWidth: 1, padding: 10, marginBottom: 20 }}
@@ -66,6 +73,14 @@ export default function AddMedicationScreen({ navigation }) {
           onChange={onChange}
         />
       )}
+
+      <TextInput
+        placeholder="Daily goal (times per day)"
+        value={dailyGoal}
+        onChangeText={setDailyGoal}
+        keyboardType="numeric"
+        style={{ borderWidth: 1, padding: 10, marginTop: 20 }}
+      />
 
       <View style={{ marginTop: 20 }}>
         <Button title="Save" onPress={handleSave} />
